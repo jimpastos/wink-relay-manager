@@ -4,8 +4,8 @@ This project is based on the work done on [wink-relay-handler](https://github.co
 
 Building
 --------
-Download the Android NDK and install
-Edit build.sh and set ANDROID_NDK path
+Download the Android NDK and install <br />
+Edit build.sh and set ANDROID_NDK path <br />
 Run ./build.sh
 
 Installing
