@@ -57,6 +57,7 @@ relay_lower_flags=2
 ```
 
 Relay upper and lower flags indicate the preferred functionality per relay/button
+
 | Flag | Bit Value | Description |
 | --- | --- | --- |
 | RELAY_FLAG_NONE | 0000 | Does nothing when you press a button |
