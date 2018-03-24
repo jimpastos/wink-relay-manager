@@ -13,6 +13,7 @@ Installing
 
 You'll need adb access to a rooted Wink Relay. Disable the existing Wink control software by running
 
+
 ```
 pm disable http://com.quirky.android.wink.projectone
 ```
@@ -36,6 +37,11 @@ cp /sdcard/wink_manager /system/bin/edisonwink
 chmod 755 /system/bin/edisonwink
 ```
 
+Reboot after setting up wink_manager.ini in /sdcard
+```
+reboot
+```
+
 Configuration
 --
 You'll need to create an ini file on /sdcard/wink_manager.ini
@@ -51,13 +57,13 @@ relay_lower_flags=2
 ```
 
 Relay upper and lower flags indicate the preferred functionality per relay/button
-|Flag|Bit Value|Description|
-|----|-----|-----------|
-|RELAY_FLAG_NONE|0000|Does nothing when you press a button|
-|RELAY_FLAG_TOGGLE|0001|Toggles the relay when button is pressed|
-|RELAY_FLAG_SEND_CLICK|0010|Sends the click event to MQTT|
-|RELAY_FLAG_SEND_HELD|0100|Sends the held event to MQTT|
-|RELAY_FLAG_SEND_RELEASE|1000|Sends the release event to MQTT|
+| Flag | Bit Value | Description |
+| --- | --- | --- |
+| RELAY_FLAG_NONE | 0000 | Does nothing when you press a button |
+| RELAY_FLAG_TOGGLE | 0001 | Toggles the relay when button is pressed |
+| RELAY_FLAG_SEND_CLICK | 0010 |Sends the click event to MQTT |
+| RELAY_FLAG_SEND_HELD | 0100 | Sends the held event to MQTT |
+| RELAY_FLAG_SEND_RELEASE |1000 |Sends the release event to MQTT |
 
 Flags need to be ORed to combine functionality
 ```
