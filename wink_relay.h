@@ -371,6 +371,8 @@ private:
       read(fdlist[i].fd, buf, sizeof(buf));
     }
 
+    screenPower(true); // turn on screen and trigger off timeout
+
     // main loop
     struct input_event event; // for re-use
     int err;
