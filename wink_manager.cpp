@@ -79,7 +79,7 @@ public:
   void relayStateChanged(int relay, bool state) {
     char topic[256] = {0};
     sprintf(topic, MQTT_RELAY_STATE_TOPIC_FORMAT, m_config.mqttTopicPrefix.c_str(), relay);
-    sendPayload(topic, state ? "ON" : "OFF");
+    sendPayload(topic, state ? "ON" : "OFF", true);
   }
 
   void temperatureChanged(float tempC) {
@@ -87,7 +87,7 @@ public:
     sprintf(topic, MQTT_TEMPERATURE_TOPIC_FORMAT, m_config.mqttTopicPrefix.c_str());
     char payload[10] = {0};
     sprintf(payload, "%f", tempC);
-    sendPayload(topic, payload);
+    sendPayload(topic, payload, true);
   }
 
   void humidityChanged(float humidity) {
@@ -95,7 +95,7 @@ public:
     sprintf(topic, MQTT_HUMIDITY_TOPIC_FORMAT, m_config.mqttTopicPrefix.c_str());
     char payload[10] = {0};
     sprintf(payload, "%f", humidity);
-    sendPayload(topic, payload);
+    sendPayload(topic, payload, true);
   }
 
   void proximityTriggered(int p) {
@@ -129,10 +129,10 @@ public:
     }
   }
   
-  void sendPayload(const char* topic, const char* payload) {
+  void sendPayload(const char* topic, const char* payload, bool retained = false) {
     // check if connected?
     int rc;
-    if ((rc = MQTTAsync_send(m_mqttClient, topic, strlen(payload), (void*)payload, 0, 0, NULL)) != MQTTASYNC_SUCCESS)
+    if ((rc = MQTTAsync_send(m_mqttClient, topic, strlen(payload), (void*)payload, 0, retained, NULL)) != MQTTASYNC_SUCCESS)
     {
       printf("Failed to send payload, return code %d\n", rc);
     }
