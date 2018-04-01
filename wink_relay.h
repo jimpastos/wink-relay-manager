@@ -143,6 +143,10 @@ public:
     });
   }
 
+  tsc::TaskScheduler& scheduler() {
+    return m_scheduler;
+  }
+
 private:
   bool m_started;
   std::thread m_looper;

@@ -33,6 +33,7 @@
  *    Ian Craggs - binary will message support
  *    Ian Craggs - waitforCompletion fix #240
  *    Ian Craggs - check for NULL SSL options #334
+ *    Ian Craggs - allocate username/password buffers #431
  *******************************************************************************/
 
 /**
@@ -1084,7 +1085,7 @@ static int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* o
 			}
 			else
 			{
-				m->c->will->payloadlen = strlen(options->will->message);
+				m->c->will->payloadlen = (int)strlen(options->will->message);
 				source = (void*)options->will->message;
 			}
 			m->c->will->payload = malloc(m->c->will->payloadlen);
@@ -1149,16 +1150,23 @@ static int MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectOptions* o
 	}
 #endif
 
-	m->c->username = options->username;
-	m->c->password = options->password;
+	if (m->c->username)
+		free((void*)m->c->username);
+	if (options->username)
+		m->c->username = MQTTStrdup(options->username);
+	if (m->c->password)
+		free((void*)m->c->password);
 	if (options->password)
-		m->c->passwordlen = strlen(options->password);
+	{
+		m->c->password = MQTTStrdup(options->password);
+		m->c->passwordlen = (int)strlen(options->password);
+	}
 	else if (options->struct_version >= 5 && options->binarypwd.data)
 	{
-		m->c->password = options->binarypwd.data;
 		m->c->passwordlen = options->binarypwd.len;
+		m->c->password = malloc(m->c->passwordlen);
+		memcpy((void*)m->c->password, options->binarypwd.data, m->c->passwordlen);
 	}
-	m->c->retryInterval = options->retryInterval;
 
 	if (options->struct_version >= 3)
 		MQTTVersion = options->MQTTVersion;
@@ -1721,9 +1729,7 @@ static MQTTPacket* MQTTClient_cycle(int* sock, unsigned long timeout, int* rc)
 	{
 		/* 0 from getReadySocket indicates no work to do, -1 == error, but can happen normally */
 #endif
-		Thread_lock_mutex(socket_mutex);
-		*sock = Socket_getReadySocket(0, &tp);
-		Thread_unlock_mutex(socket_mutex);
+		*sock = Socket_getReadySocket(0, &tp, socket_mutex);
 #if defined(OPENSSL)
 	}
 #endif

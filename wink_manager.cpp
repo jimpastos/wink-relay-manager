@@ -2,6 +2,7 @@
 
 #include "MQTTAsync.h"
 #include "ini.h"
+#include "spdlog/spdlog.h"
 
 #include <map>
 #include <functional>
@@ -46,10 +47,12 @@ private:
   Config m_config;
   MQTTAsync m_mqttClient;
   std::map<std::string, MessageFunction> m_messageCallbacks;
+  std::shared_ptr<spdlog::logger> log = spdlog::rotating_logger_mt("wink_manager", "/data/local/tmp/wink_manager.log", 1024*1024, 1);
+
 
 public:
   void buttonClicked(int button, int count) {
-    //printf("button %d clicked. %d clicks\n", button, count);
+    log->debug("button {} clicked. {} clicks", button, count);
     if ((m_config.relayFlags[button] & RELAY_FLAG_TOGGLE) && count == 1) {
       m_relay.toggleRelay(button);
     }
@@ -60,7 +63,7 @@ public:
     }
   }
   void buttonHeld(int button, int count) {
-    //printf("button %d held. %d clicks\n", button, count);
+    log->debug("button {} held. {} clicks", button, count);
     if (m_config.relayFlags[button] & RELAY_FLAG_SEND_HELD) {
       char topic[256] = {0};
       sprintf(topic, MQTT_BUTTON_TOPIC_FORMAT, m_config.mqttTopicPrefix.c_str(), button, MQTT_BUTTON_HELD_ACTION, count);
@@ -68,7 +71,7 @@ public:
     }
   }
   void buttonReleased(int button, int count) {
-    //printf("button %d released. %d clicks\n", button, count);
+    log->debug("button {} released. {} clicks", button, count);
     if (m_config.relayFlags[button] & RELAY_FLAG_SEND_RELEASE) {
       char topic[256] = {0};
       sprintf(topic, MQTT_BUTTON_TOPIC_FORMAT, m_config.mqttTopicPrefix.c_str(), button, MQTT_BUTTON_RELEASED_ACTION, count);
@@ -99,11 +102,11 @@ public:
   }
 
   void proximityTriggered(int p) {
-    //printf("Proximity triggered %d\n", p);
+    log->debug("Proximity triggered {}", p);
   }
 
   void onConnected(char* cause) {
-    //printf("Successful connection\n");
+    log->info("Successful connection");
     int topicCount = m_messageCallbacks.size();
     char* topics[topicCount];
     int qos[topicCount];
@@ -118,11 +121,11 @@ public:
   }
 
   void onConnectFailure(MQTTAsync_failureData* response) {
-    //printf("Connect failed, rc %d\n", response ? response->code : 0);
+    log->error("Connect failed, rc {}", response ? response->code : 0);
   }
 
   void messageArrived(char* topicName, int topicLen, MQTTAsync_message* message) {
-    //printf("Received message on topic [%.*s] : %.*s\n", topicLen, topicName, message->payloadlen, message->payload); 
+    log->debug("Received message on topic [%.*s] : %.*s", topicLen, topicName, message->payloadlen, message->payload); 
     auto it = m_messageCallbacks.find(topicName);
     if (it != m_messageCallbacks.end()) {
       it->second(message);
@@ -131,10 +134,11 @@ public:
   
   void sendPayload(const char* topic, const char* payload, bool retained = false) {
     // check if connected?
+    log->debug("Sending \"{}\" on [{}]", payload, topic);
     int rc;
     if ((rc = MQTTAsync_send(m_mqttClient, topic, strlen(payload), (void*)payload, 0, retained, NULL)) != MQTTASYNC_SUCCESS)
     {
-      printf("Failed to send payload, return code %d\n", rc);
+      log->error("Failed to send payload, return code {}", rc);
     }
   }
 
@@ -176,6 +180,12 @@ public:
       m_config.relayFlags[0] = atoi(value);
     } else if (strcmp(name, "relay_lower_flags") == 0) {
       m_config.relayFlags[1] = atoi(value);
+    } else if (strcmp(name, "debug") == 0) {
+      if (value[0] == '1') { 
+        spdlog::set_level(spdlog::level::debug);
+        log->flush_on(spdlog::level::debug);
+        log->info("Debug logging enabled");
+      }
     }
     return 1;
   }
@@ -195,19 +205,17 @@ public:
   }
 
   void start() {
+    log->flush_on(spdlog::level::info);
+    log->info("Wink Manager started");
     // parse config
     if (ini_parse("/sdcard/wink_manager.ini", _configHandler, this) < 0) {
-      printf("Can't load /sdcard/wink_manager.ini\n");
+      log->error("Can't load /sdcard/wink_manager.ini");
       exit(EXIT_FAILURE);
     }
 
     m_messageCallbacks.emplace(m_config.mqttTopicPrefix + "/relays/0", std::bind(&WinkRelayManager::handleRelayMessage, this, 0, std::placeholders::_1));
     m_messageCallbacks.emplace(m_config.mqttTopicPrefix + "/relays/1", std::bind(&WinkRelayManager::handleRelayMessage, this, 1, std::placeholders::_1));
     m_messageCallbacks.emplace(m_config.mqttTopicPrefix + "/screen", std::bind(&WinkRelayManager::handleScreenMessage, this, std::placeholders::_1));
-
-    if (m_config.hideStatusBar) {
-      system("service call activity 42 s16 com.android.systemui");
-    }
 
     MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
     MQTTAsync_create(&m_mqttClient, m_config.mqttAddress.c_str(), m_config.mqttClientId.c_str(), MQTTCLIENT_PERSISTENCE_NONE, NULL);
@@ -229,8 +237,17 @@ public:
     int rc;
     if ((rc = MQTTAsync_connect(m_mqttClient, &conn_opts)) != MQTTASYNC_SUCCESS)
     {
-      printf("Can't connect to %s - rcode %d\n", m_config.mqttAddress.c_str(), rc);
+      log->error("Can't connect to {} - rcode {}", m_config.mqttAddress.c_str(), rc);
       exit(EXIT_FAILURE);
+    }
+
+    if (m_config.hideStatusBar) {
+      using namespace std::chrono_literals;
+      // Schedule hiding bar for later
+      m_relay.scheduler().Schedule(30s, [log=log] (tsc::TaskContext c) {
+        log->info("Sending service call to hide status bar");
+        system("service call activity 42 s16 com.android.systemui");
+      });
     }
 
     m_relay.setCallbacks(this);

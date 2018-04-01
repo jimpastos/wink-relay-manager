@@ -34,6 +34,7 @@
  *    Ian Craggs - auto reconnect timing fix #218
  *    Ian Craggs - fix for issue #190
  *    Ian Craggs - check for NULL SSL options #334
+ *    Ian Craggs - allocate username/password buffers #431
  *******************************************************************************/
 
 /**
@@ -999,6 +1000,17 @@ static void MQTTAsync_checkDisconnect(MQTTAsync handle, MQTTAsync_command* comma
 	FUNC_EXIT;
 }
 
+/**
+ * Call Socket_noPendingWrites(int socket) with protection by socket_mutex, see https://github.com/eclipse/paho.mqtt.c/issues/385
+ */
+static int MQTTAsync_Socket_noPendingWrites(int socket)
+{
+    int rc;
+    Thread_lock_mutex(socket_mutex);
+    rc = Socket_noPendingWrites(socket);
+    Thread_unlock_mutex(socket_mutex);
+    return rc;
+}
 
 /**
  * See if any pending writes have been completed, and cleanup if so.
@@ -1034,8 +1046,10 @@ static void MQTTAsync_freeServerURIs(MQTTAsyncs* m)
 
 	for (i = 0; i < m->serverURIcount; ++i)
 		free(m->serverURIs[i]);
+	m->serverURIcount = 0;
 	if (m->serverURIs)
 		free(m->serverURIs);
+	m->serverURIs = NULL;
 }
 
 
@@ -1049,7 +1063,9 @@ static void MQTTAsync_freeCommand1(MQTTAsync_queuedCommand *command)
 			free(command->command.details.sub.topics[i]);
 
 		free(command->command.details.sub.topics);
+		command->command.details.sub.topics = NULL;
 		free(command->command.details.sub.qoss);
+		command->command.details.sub.qoss = NULL;
 	}
 	else if (command->command.type == UNSUBSCRIBE)
 	{
@@ -1059,13 +1075,16 @@ static void MQTTAsync_freeCommand1(MQTTAsync_queuedCommand *command)
 			free(command->command.details.unsub.topics[i]);
 
 		free(command->command.details.unsub.topics);
+		command->command.details.unsub.topics = NULL;
 	}
 	else if (command->command.type == PUBLISH)
 	{
 		/* qos 1 and 2 topics are freed in the protocol code when the flows are completed */
 		if (command->command.details.pub.destinationName)
 			free(command->command.details.pub.destinationName);
+		command->command.details.pub.destinationName = NULL;
 		free(command->command.details.pub.payload);
+		command->command.details.pub.payload = NULL;
 	}
 }
 
@@ -1173,7 +1192,7 @@ static int MQTTAsync_processCommand(void)
 			continue;
 
 		if (cmd->command.type == CONNECT || cmd->command.type == DISCONNECT || (cmd->client->c->connected &&
-			cmd->client->c->connect_state == 0 && Socket_noPendingWrites(cmd->client->c->net.socket)))
+			cmd->client->c->connect_state == 0 && MQTTAsync_Socket_noPendingWrites(cmd->client->c->net.socket)))
 		{
 			if ((cmd->command.type == PUBLISH || cmd->command.type == SUBSCRIBE || cmd->command.type == UNSUBSCRIBE) &&
 				cmd->client->c->outboundMsgs->count >= MAX_MSG_ID - 1)
@@ -1397,6 +1416,11 @@ static int MQTTAsync_processCommand(void)
 				Log(TRACE_MIN, -1, "Calling command failure for client %s", command->client->c->clientID);
 				(*(command->command.onFailure))(command->command.context, NULL);
 			}
+			if (command->command.type == CONNECT)
+			{
+				command->client->connect = command->command;
+				MQTTAsync_startConnectRetry(command->client);
+			}
 			MQTTAsync_freeCommand(command);  /* free up the command if necessary */
 		}
 	}
@@ -1441,7 +1465,7 @@ static void nextOrClose(MQTTAsyncs* m, int rc, char* message)
 	else
 	{
 		MQTTAsync_closeSession(m->c);
-	  if (m->connect.onFailure)
+		if (m->connect.onFailure)
 		{
 			MQTTAsync_failureData data;
 
@@ -2364,7 +2388,7 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 			}
 			else
 			{
-				m->c->will->payloadlen = strlen(options->will->message);
+				m->c->will->payloadlen = (int)strlen(options->will->message);
 				source = (void*)options->will->message;
 			}
 			m->c->will->payload = malloc(m->c->will->payloadlen);
@@ -2436,14 +2460,22 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 	}
 #endif
 
-	m->c->username = options->username;
-	m->c->password = options->password;
+	if (m->c->username)
+		free((void*)m->c->username);
+	if (options->username)
+		m->c->username = MQTTStrdup(options->username);
+	if (m->c->password)
+		free((void*)m->c->password);
 	if (options->password)
-		m->c->passwordlen = strlen(options->password);
+	{
+		m->c->password = MQTTStrdup(options->password);
+		m->c->passwordlen = (int)strlen(options->password);
+	}
 	else if (options->struct_version >= 5 && options->binarypwd.data)
 	{
-		m->c->password = options->binarypwd.data;
 		m->c->passwordlen = options->binarypwd.len;
+		m->c->password = malloc(m->c->passwordlen);
+		memcpy((void*)m->c->password, options->binarypwd.data, m->c->passwordlen);
 	}
 
 	m->c->retryInterval = options->retryInterval;
@@ -2987,10 +3019,8 @@ static MQTTPacket* MQTTAsync_cycle(int* sock, unsigned long timeout, int* rc)
 	if ((*sock = SSLSocket_getPendingRead()) == -1)
 	{
 #endif
-		Thread_lock_mutex(socket_mutex);
 		/* 0 from getReadySocket indicates no work to do, -1 == error, but can happen normally */
-		*sock = Socket_getReadySocket(0, &tp);
-		Thread_unlock_mutex(socket_mutex);
+		*sock = Socket_getReadySocket(0, &tp,socket_mutex);
 		if (!tostop && *sock == 0 && (tp.tv_sec > 0L || tp.tv_usec > 0L))
 			MQTTAsync_sleep(100L);
 #if defined(OPENSSL)

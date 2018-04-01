@@ -2,6 +2,6 @@
 #define VERSIONINFO_H
 
 #define BUILD_TIMESTAMP "-"
-#define CLIENT_VERSION  "1.2.0"
+#define CLIENT_VERSION  "1.2.1.10c895c"
 
 #endif /* VERSIONINFO_H */
