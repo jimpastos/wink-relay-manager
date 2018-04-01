@@ -181,7 +181,7 @@ public:
     } else if (strcmp(name, "relay_lower_flags") == 0) {
       m_config.relayFlags[1] = atoi(value);
     } else if (strcmp(name, "debug") == 0) {
-      if (value[0] == '1') { 
+      if (strcmp(value, "true") == 0) {
         spdlog::set_level(spdlog::level::debug);
         log->flush_on(spdlog::level::debug);
         log->info("Debug logging enabled");

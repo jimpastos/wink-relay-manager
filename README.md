@@ -102,3 +102,9 @@ MQTT payloads:
 1 or case insensive "on" for enabling
 or 0 or case insensitive "off" for disabling
 ```
+#####  Logging and Debug
+Logs are written to /data/local/tmp/wink_manager.log
+Debug logging can be enabled by adding the following to the config file
+```
+debug=true
+```
