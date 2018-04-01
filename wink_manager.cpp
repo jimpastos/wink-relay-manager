@@ -47,7 +47,7 @@ private:
   Config m_config;
   MQTTAsync m_mqttClient;
   std::map<std::string, MessageFunction> m_messageCallbacks;
-  std::shared_ptr<spdlog::logger> log = spdlog::rotating_logger_mt("wink_manager", "/data/local/tmp/wink_manager.log", 1024*1024, 1);
+  std::shared_ptr<spdlog::logger> log;
 
 
 public:
@@ -180,6 +180,9 @@ public:
       m_config.relayFlags[0] = atoi(value);
     } else if (strcmp(name, "relay_lower_flags") == 0) {
       m_config.relayFlags[1] = atoi(value);
+    } else if (strcmp(name, "log_file") == 0) {
+      log = spdlog::rotating_logger_mt("wink_manager", value, 1024*1024, 1);
+      log->flush_on(spdlog::level::info);
     } else if (strcmp(name, "debug") == 0) {
       if (strcmp(value, "true") == 0) {
         spdlog::set_level(spdlog::level::debug);
@@ -205,6 +208,7 @@ public:
   }
 
   void start() {
+    log = spdlog::android_logger("log", "wink_manager");
     log->flush_on(spdlog::level::info);
     log->info("Wink Manager started");
     // parse config

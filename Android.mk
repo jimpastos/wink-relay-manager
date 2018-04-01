@@ -13,5 +13,6 @@ INIH_C_FILES:= inih/ini.c
 SCHEDULER_FILES:= TaskScheduler/TaskScheduler.cpp
 LOCAL_SRC_FILES:= wink_manager.cpp $(SCHEDULER_FILES)  $(PAHO_C_FILES) $(INIH_C_FILES)
 LOCAL_CPPFLAGS:= -Wall -std=c++14 -Ipaho/ -ITaskScheduler/ -Iinih/
+LOCAL_LDLIBS := -llog
 LOCAL_MODULE:= wink_manager
 include $(BUILD_EXECUTABLE) # Tell ndk-build that we want to build a native executable.

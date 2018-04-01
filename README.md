@@ -104,9 +104,13 @@ MQTT payloads:
 or 0 or case insensitive "off" for disabling
 ```
 #####  Logging and Debug
-Logs are written to /data/local/tmp/wink_manager.log
+Logs default to using logcat
 
-Debug logging can be enabled by adding the following to the config file
+Debug logging can be enabled by adding the following config line
 ```
 debug=true
+```
+To change logging from logcat to a file add a "log_file" line in the config. E.g:
+```
+log_file=/data/local/tmp/wink_manager.log
 ```
