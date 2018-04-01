@@ -1,5 +1,6 @@
 # wink-relay-manager
 Manages most features of a Wink Relay natively and sends events to MQTT
+
 This project is based on the work done on [wink-relay-handler](https://github.com/mjg59/wink-relay-handler/)
 
 Building
@@ -104,6 +105,7 @@ or 0 or case insensitive "off" for disabling
 ```
 #####  Logging and Debug
 Logs are written to /data/local/tmp/wink_manager.log
+
 Debug logging can be enabled by adding the following to the config file
 ```
 debug=true
