@@ -56,6 +56,11 @@ hide_status_bar=true
 relay_upper_flags=1
 relay_lower_flags=2
 ```
+For MQTT credentials, specify the below optional fields
+```
+mqtt_username=<user>
+mqtt_password=<password>
+```
 
 Relay upper and lower flags indicate the preferred functionality per relay/button
 
