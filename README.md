@@ -51,8 +51,8 @@ mqtt_clientid=Relay
 mqtt_topic_prefix=Relay
 mqtt_address=tcp://<host>:<port>
 screen_timeout=20 // default
-proximity_threshold=5000 // default
-hide_status_bar=true // optional - could be 1, yes or true (case insensitive)
+proximity_threshold=5000
+hide_status_bar=true
 relay_upper_flags=1
 relay_lower_flags=2
 ```
@@ -63,10 +63,12 @@ mqtt_password=<password>
 ```
 To set an initial state of a relay on startup, specify the following fields.
 ```
-initial_relay_upper_state=1 // (1, yes or true)...
-initial_relay_lower_state=false // (0, no or false)...
+initial_relay_upper_state=1
+initial_relay_lower_state=0
 ```
 If an initial state is not specified, the current state will be preserved
+
+Boolean config values can be either 1, yes, true or 0, no, false (case insensitive)
 
 Relay upper and lower flags indicate the preferred functionality per relay/button
 
