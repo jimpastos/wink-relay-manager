@@ -50,7 +50,7 @@ You'll need to create an ini file on /sdcard/wink_manager.ini
 mqtt_clientid=Relay
 mqtt_topic_prefix=Relay
 mqtt_address=tcp://<host>:<port>
-screen_timeout=20 // default
+screen_timeout=20
 proximity_threshold=5000
 hide_status_bar=true
 relay_upper_flags=1
