@@ -96,9 +96,9 @@ public:
   }
 
   bool setRelay(int relay, bool enabled) {
-    using namespace std::chrono_literals;
     if (relay == 0 || relay == 1) {
-      m_scheduler.Schedule(0ms, [fd = m_relayFds[relay], enabled] (tsc::TaskContext c) {
+      m_scheduler.Async([this, relay, enabled] () {
+        auto fd = m_relayFds[relay];
         lseek(fd, 0, SEEK_SET);
         write(fd, enabled ? "1":"0", 1);
       });
@@ -108,10 +108,10 @@ public:
   }
 
   bool toggleRelay(int relay) {
-    using namespace std::chrono_literals;
     if (relay == 0 || relay == 1) {
-      m_scheduler.Schedule(0ms, [fd = m_relayFds[relay]] (tsc::TaskContext c) {
+      m_scheduler.Async([this, relay] () {
         char state;
+        auto fd = m_relayFds[relay];
         // read state then flip
         lseek(fd, 0, SEEK_SET);
         read(fd, &state, 1);
@@ -129,7 +129,6 @@ public:
   }
 
   void setScreen(bool enabled) {
-    using namespace std::chrono_literals;
     m_scheduler.Async([this, enabled]() {
       screenPower(enabled);
     });
@@ -137,7 +136,6 @@ public:
 
   // Reset state in order to trigger new events
   void resetState() {
-    using namespace std::chrono_literals;
     m_scheduler.Async([this]() {
       clearStates();
     });
@@ -374,8 +372,6 @@ private:
       lseek(fdlist[i].fd, 0, SEEK_SET);
       read(fdlist[i].fd, buf, sizeof(buf));
     }
-
-    screenPower(true); // turn on screen and trigger off timeout
 
     // main loop
     struct input_event event; // for re-use

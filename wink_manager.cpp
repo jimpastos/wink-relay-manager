@@ -143,10 +143,10 @@ public:
   }
 
   bool processStatePayload(const char* payload, int len, bool& state) {
-    if (strncmp(payload, "1", len) == 0 || strncasecmp(payload, "ON", len) == 0) {
+    if (strncmp(payload, "1", len) == 0 || strncasecmp(payload, "ON", len) == 0 || strncasecmp(payload, "true", len) == 0) {
       state = true;
       return true;
-    } else if (strncmp(payload, "0", len) == 0 || strncasecmp(payload, "OFF", len) == 0) {
+    } else if (strncmp(payload, "0", len) == 0 || strncasecmp(payload, "OFF", len) == 0 || strncasecmp(payload, "false", len) == 0)  {
       state = false;
       return true;
     }
@@ -175,11 +175,23 @@ public:
         m_relay.setProximityThreshold(t);
       }
     } else if (strcmp(name, "hide_status_bar") == 0) {
-      m_config.hideStatusBar = strcmp(value, "true") == 0;
+      bool state = false;
+      processStatePayload(value, strlen(value), state);
+      m_config.hideStatusBar = state;
     } else if (strcmp(name, "relay_upper_flags") == 0) {
       m_config.relayFlags[0] = atoi(value);
     } else if (strcmp(name, "relay_lower_flags") == 0) {
       m_config.relayFlags[1] = atoi(value);
+    } else if (strcmp(name, "initial_relay_upper_state") == 0) {
+      bool state;
+      if (processStatePayload(value, strlen(value), state)) {
+        m_relay.setRelay(0, state);
+      }
+    } else if (strcmp(name, "initial_relay_lower_state") == 0) {
+      bool state;
+      if (processStatePayload(value, strlen(value), state)) {
+        m_relay.setRelay(1, state);
+      }
     } else if (strcmp(name, "log_file") == 0) {
       log = spdlog::rotating_logger_mt("wink_manager", value, 1024*1024, 1);
       log->flush_on(spdlog::level::info);
@@ -253,6 +265,9 @@ public:
         system("service call activity 42 s16 com.android.systemui");
       });
     }
+
+    // initial screen state (will only trigger after start() is called)
+    m_relay.setScreen(true); // turn on screen and trigger off timeout
 
     m_relay.setCallbacks(this);
     m_relay.start(false);
