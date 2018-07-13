@@ -31,6 +31,7 @@ struct RelayCallbacks {
   virtual void temperatureChanged(float value) = 0;
   virtual void humidityChanged(float value) = 0;
   virtual void proximityTriggered(int p) = 0;
+  virtual void screenStateChanged(bool state) = 0;
   virtual ~RelayCallbacks() = default;
 };
 
@@ -259,12 +260,21 @@ private:
     m_scheduler.CancelGroup(SCREEN);
     if (enabled) {
       write(m_screenFd, "1", 1);
+      if (m_cb) {
+        m_cb->screenStateChanged(true);
+      }
       m_scheduler.Schedule(m_screenTimeout, SCREEN, [this] (tsc::TaskContext c) {
         // turn off screen
         write(m_screenFd, "0", 1);
+        if (m_cb) {
+          m_cb->screenStateChanged(false);
+        }
       });
     } else {
       write(m_screenFd, "0", 1);
+      if (m_cb) {
+        m_cb->screenStateChanged(false);
+      }
     }
   }
 

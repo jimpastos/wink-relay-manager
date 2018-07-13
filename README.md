@@ -66,6 +66,11 @@ To set an initial state of a relay on startup, specify the following fields.
 initial_relay_upper_state=1
 initial_relay_lower_state=0
 ```
+To send additional triggers and states
+```
+send_proximity_trigger=true
+send_screen_state=true
+```
 If an initial state is not specified, the current state will be preserved
 
 Boolean config values can be either 1, yes, true or 0, no, false (case insensitive)
@@ -95,6 +100,8 @@ MQTT Topics
 <MQTTPrefix>/sensors/humidity
 <MQTTPrefix>/relays/0/state
 <MQTTPrefix>/relays/1/state
+<MQTTPrefix>/screen/state // if enabled will be ON or OFF
+<MQTTPrefix>/proximity/trigger // if enabled will be the sensor value that triggered it
 ```
 #####  Button events are posted to different topics
 ```

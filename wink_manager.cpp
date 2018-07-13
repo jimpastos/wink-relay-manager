@@ -16,6 +16,8 @@
 #define MQTT_RELAY_STATE_TOPIC_FORMAT "%s/relays/%d/state"
 #define MQTT_TEMPERATURE_TOPIC_FORMAT "%s/sensors/temperature"
 #define MQTT_HUMIDITY_TOPIC_FORMAT "%s/sensors/humidity"
+#define MQTT_SCREEN_STATE_TOPIC_FORMAT "%s/screen/state"
+#define MQTT_PROXIMITY_TRIGGER_TOPIC_FORMAT "%s/proximity/trigger"
 
 void _onConnectFailure(void* context, MQTTAsync_failureData* response);
 void _onConnected(void* context, char* cause);
@@ -37,6 +39,8 @@ struct Config {
   std::string mqttAddress;
   std::string mqttTopicPrefix = "Relay";
   bool hideStatusBar = true;
+  bool sendScreenState = false;
+  bool sendProximityTrigger = false;
   short relayFlags[2] = { RELAY_FLAG_SEND_CLICK | RELAY_FLAG_SEND_HELD, RELAY_FLAG_SEND_CLICK | RELAY_FLAG_SEND_HELD };
 };
 
@@ -103,6 +107,22 @@ public:
 
   void proximityTriggered(int p) {
     log->debug("Proximity triggered {}", p);
+    if (m_config.sendProximityTrigger) {
+        char topic[256] = {0};
+        sprintf(topic, MQTT_PROXIMITY_TRIGGER_TOPIC_FORMAT, m_config.mqttTopicPrefix.c_str());
+        char payload[10] = {0};
+        sprintf(payload, "%d", p);
+        sendPayload(topic, payload, false);
+    }
+  }
+
+  void screenStateChanged(bool state) {
+    log->debug("Screen state changed {}", state);
+    if (m_config.sendScreenState) {
+        char topic[256] = {0};
+        sprintf(topic, MQTT_SCREEN_STATE_TOPIC_FORMAT, m_config.mqttTopicPrefix.c_str());
+        sendPayload(topic, state ? "ON" : "OFF", true);
+    }
   }
 
   void onConnected(char* cause) {
@@ -195,6 +215,14 @@ public:
     } else if (strcmp(name, "log_file") == 0) {
       log = spdlog::rotating_logger_mt("wink_manager", value, 1024*1024, 1);
       log->flush_on(spdlog::level::info);
+    } else if (strcmp(name, "send_proximity_trigger") == 0) {
+      bool state = false;
+      processStatePayload(value, strlen(value), state);
+      m_config.sendProximityTrigger = state;
+    } else if (strcmp(name, "send_screen_state") == 0) {
+      bool state = false;
+      processStatePayload(value, strlen(value), state);
+      m_config.sendScreenState = state;
     } else if (strcmp(name, "debug") == 0) {
       if (strcmp(value, "true") == 0) {
         spdlog::set_level(spdlog::level::debug);
