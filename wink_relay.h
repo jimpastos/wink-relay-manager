@@ -162,6 +162,7 @@ private:
   // States
   ButtonState m_buttonStates[2] = {{0}, {0}};
   char m_relayStates[2];
+  char m_screenState;
   int m_lastTemperature;
   int m_lastHumidity;
   int m_lastInput;
@@ -178,6 +179,7 @@ private:
     m_lastInput = -1;
     m_relayStates[0] = ' ';
     m_relayStates[1] = ' ';
+    m_screenState = ' ';
   }
 
   void handleButtonPress(int i) {
@@ -237,6 +239,19 @@ private:
     }
   }
 
+  void checkScreenState() {
+    char state;
+    lseek(m_screenFd, 0, SEEK_SET);
+    if (read(m_screenFd, &state, 1) > 0) {
+      if (m_screenState != state) {
+        m_screenState = state;
+        if (m_cb) {
+          m_cb->screenStateChanged(state == '1');
+        }
+      }
+    }
+  }
+
   bool checkValue(int fd, char* buffer, int len, int threshold, int& last) {
     int value = getInteger(fd, buffer, len);
     if (abs(value - last) > threshold) {
@@ -260,22 +275,15 @@ private:
     m_scheduler.CancelGroup(SCREEN);
     if (enabled) {
       write(m_screenFd, "1", 1);
-      if (m_cb) {
-        m_cb->screenStateChanged(true);
-      }
       m_scheduler.Schedule(m_screenTimeout, SCREEN, [this] (tsc::TaskContext c) {
         // turn off screen
         write(m_screenFd, "0", 1);
-        if (m_cb) {
-          m_cb->screenStateChanged(false);
-        }
+        checkScreenState();
       });
     } else {
       write(m_screenFd, "0", 1);
-      if (m_cb) {
-        m_cb->screenStateChanged(false);
-      }
     }
+    checkScreenState();
   }
 
   void consumeEvents(int fd, struct input_event* event, std::function<void(struct input_event*)> cb) {
