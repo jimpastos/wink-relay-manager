@@ -79,11 +79,12 @@ Relay upper and lower flags indicate the preferred functionality per relay/butto
 
 | Flag | Bit Value | Description |
 | --- | --- | --- |
-| RELAY_FLAG_NONE | 0000 | Does nothing when you press a button |
-| RELAY_FLAG_TOGGLE | 0001 | Toggles the relay when button is pressed |
-| RELAY_FLAG_SEND_CLICK | 0010 |Sends the click event to MQTT |
-| RELAY_FLAG_SEND_HELD | 0100 | Sends the held event to MQTT |
-| RELAY_FLAG_SEND_RELEASE |1000 |Sends the release event to MQTT |
+| RELAY_FLAG_NONE | 00000 | Does nothing when you press a button |
+| RELAY_FLAG_TOGGLE | 00001 | Toggles the relay when button is pressed |
+| RELAY_FLAG_SEND_CLICK | 00010 |Sends the click event to MQTT |
+| RELAY_FLAG_SEND_HELD | 00100 | Sends the held event to MQTT |
+| RELAY_FLAG_SEND_RELEASE |01000 |Sends the release event to MQTT |
+| RELAY_FLAG_GRAB_TOUCH_INPUT | 10000 | Disables all screen touches when double clicked |
 
 Flags need to be ORed to combine functionality
 ```

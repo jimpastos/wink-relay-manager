@@ -32,6 +32,7 @@ struct RelayCallbacks {
   virtual void humidityChanged(float value) = 0;
   virtual void proximityTriggered(int p) = 0;
   virtual void screenStateChanged(bool state) = 0;
+  virtual void touchInputGrabbed(bool state) = 0;
   virtual ~RelayCallbacks() = default;
 };
 
@@ -142,6 +143,24 @@ public:
     });
   }
 
+  void toggleTouchInput() {
+    m_scheduler.Async([this]() {
+      bool state = m_inputGrabbed;
+      if (state) {
+        if (ioctl(m_inputFd, EVIOCGRAB, 0)) {
+          m_inputGrabbed = false;
+        }
+      } else {
+        if (ioctl(m_inputFd, EVIOCGRAB, 1) == 0) {
+           m_inputGrabbed = true;
+        }
+      }
+      if (m_cb && m_inputGrabbed != state) {
+        m_cb->touchInputGrabbed(m_inputGrabbed);
+      }
+    });
+  }
+
   tsc::TaskScheduler& scheduler() {
     return m_scheduler;
   }
@@ -166,6 +185,8 @@ private:
   int m_lastTemperature;
   int m_lastHumidity;
   int m_lastInput;
+  int m_inputFd;
+  bool m_inputGrabbed;
 
   enum SchedulerGroup {
     BUTTON_0 = 0,
@@ -294,14 +315,14 @@ private:
     }
   }
 
-  void processScreenEvent(int fd, struct input_event* event) {
+  void processTouchEvent(int fd, struct input_event* event) {
     bool trigger = false;
     consumeEvents(fd, event, [&trigger] (struct input_event* e) {
       if (e->type == EV_KEY) {
         trigger = true;
       }
     });
-    if (trigger) {
+    if (trigger && !m_inputGrabbed) {
       screenPower(true);
     }
   }
@@ -383,6 +404,7 @@ private:
     m_temperatureFd = open(TEMPERATURE_DATA, O_RDONLY);
     m_humidityFd = open(HUMIDITY_DATA, O_RDONLY);
     m_screenFd = open(SCREEN_STATE, O_RDWR);
+    m_inputFd = fdlist[2].fd;
 
     // read initial button data and start fresh
     char buf[2] = {0};
@@ -419,7 +441,7 @@ private:
             // event data
             if ((fdlist[i].revents & POLLIN) == POLLIN) {
               if (i == 2) {
-                processScreenEvent(fdlist[i].fd, &event);
+                processTouchEvent(fdlist[i].fd, &event);
               } else if (i == 3) {
                 processProximityEvent(fdlist[i].fd, &event);
               } else if (i == 4) {

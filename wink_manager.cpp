@@ -30,6 +30,7 @@ enum RelayFlags {
   RELAY_FLAG_SEND_CLICK = 1 << 1,
   RELAY_FLAG_SEND_HELD = 1 << 2,
   RELAY_FLAG_SEND_RELEASE = 1 << 3,
+  RELAY_FLAG_GRAB_TOUCH_INPUT = 1 << 4,
 };
 
 struct Config {
@@ -59,6 +60,9 @@ public:
     log->debug("button {} clicked. {} clicks", button, count);
     if ((m_config.relayFlags[button] & RELAY_FLAG_TOGGLE) && count == 1) {
       m_relay.toggleRelay(button);
+    }
+    if ((m_config.relayFlags[button] & RELAY_FLAG_GRAB_TOUCH_INPUT) && count == 2) {
+      m_relay.toggleTouchInput();
     }
     if (m_config.relayFlags[button] & RELAY_FLAG_SEND_CLICK) {
       char topic[256] = {0};
@@ -123,6 +127,10 @@ public:
         sprintf(topic, MQTT_SCREEN_STATE_TOPIC_FORMAT, m_config.mqttTopicPrefix.c_str());
         sendPayload(topic, state ? "ON" : "OFF", true);
     }
+  }
+
+  void touchInputGrabbed(bool state) {
+    log->debug("Touch input grabbed {}", state);
   }
 
   void onConnected(char* cause) {
