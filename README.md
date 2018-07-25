@@ -84,7 +84,7 @@ Relay upper and lower flags indicate the preferred functionality per relay/butto
 | RELAY_FLAG_SEND_CLICK | 00010 |Sends the click event to MQTT |
 | RELAY_FLAG_SEND_HELD | 00100 | Sends the held event to MQTT |
 | RELAY_FLAG_SEND_RELEASE |01000 |Sends the release event to MQTT |
-| RELAY_FLAG_GRAB_TOUCH_INPUT | 10000 | Disables all screen touches when double clicked |
+| RELAY_FLAG_GRAB_TOUCH_INPUT | 10000 | Toggle blocking screen touches when double clicked |
 
 Flags need to be ORed to combine functionality
 ```
