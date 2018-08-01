@@ -147,7 +147,7 @@ public:
     m_scheduler.Async([this]() {
       bool state = m_inputGrabbed;
       if (state) {
-        if (ioctl(m_inputFd, EVIOCGRAB, 0)) {
+        if (ioctl(m_inputFd, EVIOCGRAB, 0) == 0) {
           m_inputGrabbed = false;
         }
       } else {
