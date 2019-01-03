@@ -1,6 +1,6 @@
 # wink-relay-manager
 Manages most features of a Wink Relay natively and sends events to MQTT
-
+![Wink Relay](https://raw.githubusercontent.com/jimpastos/wink-relay-manager/master/wink-relay.jpg)
 This project is based on the work done on [wink-relay-handler](https://github.com/mjg59/wink-relay-handler/)
 
 Building
