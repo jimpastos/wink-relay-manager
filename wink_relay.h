@@ -69,6 +69,14 @@ public:
     m_proximityThreshold = t;
   }
 
+  void setTemperatureThreshold(int t) {
+    m_temperatureThreshold = t;
+  }
+
+  void setHumidityThreshold(int t) {
+    m_humidityThreshold = t;
+  }
+
   void start(bool async) {
     using namespace std::chrono_literals;
     if (!m_started) {
@@ -79,11 +87,11 @@ public:
         checkRelayStates();
         // Temperature
         char buf[10] = {0}; // for re-use
-        if (checkValue(m_temperatureFd, buf, sizeof(buf), 100, m_lastTemperature) && m_cb) {
+        if (checkValue(m_temperatureFd, buf, sizeof(buf), m_temperatureThreshold, m_lastTemperature) && m_cb) {
           m_cb->temperatureChanged(m_lastTemperature/1000.0f);
         }
         // Humidity
-        if (checkValue(m_humidityFd, buf, sizeof(buf), 100, m_lastHumidity) && m_cb) {
+        if (checkValue(m_humidityFd, buf, sizeof(buf), m_humidityThreshold, m_lastHumidity) && m_cb) {
           m_cb->humidityChanged(m_lastHumidity/1000.0f);
         }
         c.Repeat();
@@ -173,6 +181,8 @@ private:
   // Config
   std::chrono::seconds m_screenTimeout;
   int m_proximityThreshold = 5000;
+  int m_temperatureThreshold = 100;
+  int m_humidityThreshold = 100;
   // File Handles
   int m_temperatureFd;
   int m_humidityFd;

@@ -202,6 +202,16 @@ public:
       if (t > 0) {
         m_relay.setProximityThreshold(t);
       }
+    } else if (strcmp(name, "temperature_threshold") == 0) {
+      int t = atoi(value);
+      if (t > 99) {
+        m_relay.setTemperatureThreshold(t);
+      }
+    } else if (strcmp(name, "humidity_threshold") == 0) {
+      int t = atoi(value);
+      if (t > 99) {
+        m_relay.setHumidityThreshold(t);
+      }
     } else if (strcmp(name, "hide_status_bar") == 0) {
       bool state = false;
       processStatePayload(value, strlen(value), state);
