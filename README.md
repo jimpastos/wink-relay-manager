@@ -51,9 +51,6 @@ You'll need to create an ini file on /sdcard/wink_manager.ini
 mqtt_clientid=Relay
 mqtt_topic_prefix=Relay
 mqtt_address=tcp://<host>:<port>
-screen_timeout=20
-proximity_threshold=5000
-hide_status_bar=true
 relay_upper_flags=1
 relay_lower_flags=2
 ```
@@ -71,6 +68,14 @@ To send additional triggers and states
 ```
 send_proximity_trigger=true
 send_screen_state=true
+```
+To change default behaviors
+```
+hide_status_bar=true
+screen_timeout=20
+proximity_threshold=5000
+temperature_threshold=100
+humidity_threshold=100
 ```
 If an initial state is not specified, the current state will be preserved
 
@@ -118,6 +123,8 @@ where:
 ```
 <MQTTPrefix>/relays/<relay>
 <MQTTPrefix>/screen/
+<MQTTPrefix>/command/exit // exits the process (any payload)
+<MQTTPrefix>/command/reboot // reboots the device (any payload)
 
 where:
 <relay> is: 0 or 1
