@@ -7,6 +7,8 @@
 #include <map>
 #include <functional>
 
+#include <sys/reboot.h>
+
 // prefix/buttons/index/action/clicks
 #define MQTT_BUTTON_TOPIC_FORMAT "%s/buttons/%d/%s/%d"
 #define MQTT_BUTTON_CLICK_ACTION "click"
@@ -153,7 +155,7 @@ public:
   }
 
   void messageArrived(char* topicName, int topicLen, MQTTAsync_message* message) {
-    log->debug("Received message on topic [%.*s] : %.*s", topicLen, topicName, message->payloadlen, message->payload); 
+    log->debug("Received message on topic [{}] : {:.{}}", topicName, (const char*)message->payload, message->payloadlen); 
     auto it = m_messageCallbacks.find(topicName);
     if (it != m_messageCallbacks.end()) {
       it->second(message);
@@ -265,6 +267,14 @@ public:
     }
   }
 
+  void handleRebootMessage(MQTTAsync_message* msg) {
+    reboot(LINUX_REBOOT_CMD_RESTART);
+  }
+
+  void handleExitMessage(MQTTAsync_message* msg) {
+    exit(EXIT_SUCCESS);
+  }
+
   void start() {
     log = spdlog::android_logger("log", "wink_manager");
     log->flush_on(spdlog::level::info);
@@ -278,6 +288,10 @@ public:
     m_messageCallbacks.emplace(m_config.mqttTopicPrefix + "/relays/0", std::bind(&WinkRelayManager::handleRelayMessage, this, 0, std::placeholders::_1));
     m_messageCallbacks.emplace(m_config.mqttTopicPrefix + "/relays/1", std::bind(&WinkRelayManager::handleRelayMessage, this, 1, std::placeholders::_1));
     m_messageCallbacks.emplace(m_config.mqttTopicPrefix + "/screen", std::bind(&WinkRelayManager::handleScreenMessage, this, std::placeholders::_1));
+
+    // commands
+    m_messageCallbacks.emplace(m_config.mqttTopicPrefix + "/command/reboot", std::bind(&WinkRelayManager::handleRebootMessage, this, std::placeholders::_1));
+    m_messageCallbacks.emplace(m_config.mqttTopicPrefix + "/command/exit", std::bind(&WinkRelayManager::handleExitMessage, this, std::placeholders::_1));
 
     MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
     MQTTAsync_create(&m_mqttClient, m_config.mqttAddress.c_str(), m_config.mqttClientId.c_str(), MQTTCLIENT_PERSISTENCE_NONE, NULL);
