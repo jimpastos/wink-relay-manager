@@ -85,18 +85,20 @@ Relay upper and lower flags indicate the preferred functionality per relay/butto
 
 | Flag | Bit Value | Description |
 | --- | --- | --- |
-| RELAY_FLAG_NONE | 00000 | Does nothing when you press a button |
-| RELAY_FLAG_TOGGLE | 00001 | Toggles the relay when button is pressed |
-| RELAY_FLAG_SEND_CLICK | 00010 |Sends the click event to MQTT |
-| RELAY_FLAG_SEND_HELD | 00100 | Sends the held event to MQTT |
-| RELAY_FLAG_SEND_RELEASE |01000 |Sends the release event to MQTT |
-| RELAY_FLAG_GRAB_TOUCH_INPUT | 10000 | Toggle blocking screen touches when double clicked |
+| RELAY_FLAG_NONE | 000000 | Does nothing when you press a button |
+| RELAY_FLAG_TOGGLE | 000001 | Toggles the relay when button is pressed |
+| RELAY_FLAG_SEND_CLICK | 000010 |Sends the click event to MQTT |
+| RELAY_FLAG_SEND_HELD | 000100 | Sends the held event to MQTT |
+| RELAY_FLAG_SEND_RELEASE |001000 |Sends the release event to MQTT |
+| RELAY_FLAG_GRAB_TOUCH_INPUT | 010000 | Toggle blocking screen touches when double clicked |
+| RELAY_FLAG_TOGGLE_OPPOSITE | 100000 | Toggles the opposite relay when button is pressed when combined with RELAY_FLAG_TOGGLE |
 
 Flags need to be ORed to combine functionality
 ```
 relay_xxxxx_flags=1 // Just toggle the relay on button click
 relay_xxxxx_flags=2 // Just send click events
 relay_xxxxx_flags=3 // Toggle and send click events (0001 | 0010) = 0011 => 3
+relay_xxxxx_flags=35 // Toggle opposite and send click events (000001 | 000010 | 100000) = 100011 => 35
 ```
 
 MQTT Topics

@@ -33,6 +33,7 @@ enum RelayFlags {
   RELAY_FLAG_SEND_HELD = 1 << 2,
   RELAY_FLAG_SEND_RELEASE = 1 << 3,
   RELAY_FLAG_GRAB_TOUCH_INPUT = 1 << 4,
+  RELAY_FLAG_TOGGLE_OPPOSITE = 1 << 5,
 };
 
 struct Config {
@@ -56,12 +57,15 @@ private:
   std::map<std::string, MessageFunction> m_messageCallbacks;
   std::shared_ptr<spdlog::logger> log;
 
-
 public:
   void buttonClicked(int button, int count) {
     log->debug("button {} clicked. {} clicks", button, count);
     if ((m_config.relayFlags[button] & RELAY_FLAG_TOGGLE) && count == 1) {
-      m_relay.toggleRelay(button);
+      if (m_config.relayFlags[button] & RELAY_FLAG_TOGGLE_OPPOSITE) {
+        m_relay.toggleRelay(!button);
+      } else {
+        m_relay.toggleRelay(button);
+      }
     }
     if ((m_config.relayFlags[button] & RELAY_FLAG_GRAB_TOUCH_INPUT) && count == 2) {
       m_relay.toggleTouchInput();
